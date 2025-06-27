@@ -157,6 +157,9 @@ struct DecodeToEXE {
     reg_we =false;
     loadu= false;
     wb_sel = WBSEL_01;
+    mem_rd = false;
+    mem_wr = false;
+    mem_op_size = ;
     
   }
 };
