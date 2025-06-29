@@ -1,4 +1,5 @@
-
+#ifndef __UART_H__
+#define __UART_H__
 #include "config.h"
 #include <cstdio>
 
@@ -14,3 +15,4 @@ class Uart {
     //TODO:
   }
 };
+#endif

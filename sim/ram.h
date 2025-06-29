@@ -1,3 +1,5 @@
+#ifndef __RAM_H__
+#define __RAM_H__
 #include "config.h"
 #include <vector>
 template <typename MemCell=DataWidth>
@@ -16,3 +18,4 @@ class SyncRamDP {
   }
 };
 
+#endif

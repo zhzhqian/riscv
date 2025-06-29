@@ -76,15 +76,23 @@ enum MemOpSizeType{
 enum WriteBackSel{
   WBSEL_ALU,
   WBSEL_MEM,
+  WBSEL_PC,
+  WBSEL_SCR,
 };
 
 enum ALUDataPort0 {
   ALU_PORT0_PC,
-  ALU_PORT0_RS0
+  ALU_PORT0_RS1
 };
 enum ALUDataPort1 {
   ALU_PORT1_IMM,
-  ALU_PORT1_RS1
+  ALU_PORT1_RS2
+};
+
+
+struct HandShake{
+  bool ready;
+  bool valid;
 };
 
 struct FetchTodecode{
@@ -103,6 +111,11 @@ struct EXEToFetch{
   bool jump_taken;
   bool bp_fail;
   bool branch_taken;
+  void flush(){
+    jump_taken = false;
+    bp_fail =false;
+    branch_taken =false;
+  }
 };
 
 struct DecodeToEXE {
@@ -121,6 +134,10 @@ struct DecodeToEXE {
   int csr_op;
   int csr_idx;
   int dst_reg;
+  bool bp_taken;
+  static DecodeToEXE* Bubble() {
+    return new DecodeToEXE();
+  }
   
   DecodeToEXE(){
     alu_op = ALU_OP_NONE;
@@ -128,7 +145,7 @@ struct DecodeToEXE {
     is_jump = false;
     reg_we =false;
     loadu= false;
-    wb_sel = WBSEL_01;
+    wb_sel = WBSEL_ALU;
     mem_rd = false;
     mem_wr = false;
     mem_op_size = Mem_OP_WORD;
@@ -138,11 +155,15 @@ struct DecodeToEXE {
 
 struct EXEToDecode {
   bool branch_taken;
+  bool reg_we;
+  int dst_reg;
+  RegVal dst_reg_data;
 };
 
 struct EXEToMem {
   RegVal alu_out;
   RegVal csr_out;
+  RegVal pc;
   bool reg_we;
   int wb_sel;
   bool loadu;
@@ -150,11 +171,17 @@ struct EXEToMem {
   bool branch_taken;
   int dst_reg;
   RegVal rs2;
+  void flush() {
+    reg_we = false;
+    mem_rd = false;
+    mem_wr = false;
+  }
 };
 
 struct MemToWB {
   RegVal mem_data;
   RegVal alu_out;
+  RegVal csr_out;
   int dst_reg;
   bool reg_we;
   int wb_sel;
@@ -164,6 +191,16 @@ struct WBToDecode {
   RegVal wb_data;
   int dst_reg;
   bool reg_we;
+};
+
+struct FetchToEXE {
+  bool flush;
+};
+
+struct MemToDecode {
+  bool reg_we;
+  int dst_reg;
+  RegVal dst_reg_data;
 };
 
 #endif

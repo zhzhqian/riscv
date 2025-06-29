@@ -1,3 +1,5 @@
+#ifndef __BRANCH_PREDICT_H__
+#define __BRANCH_PREDICT_H__
 
 #include "config.h"
 #include <vector>
@@ -42,3 +44,5 @@ class BranchPredict {
     return bp_pattern_taken(cur_stat);
   }
 };
+
+#endif

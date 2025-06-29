@@ -1,3 +1,6 @@
+#ifndef __REGFILE_H__
+#define __REGFILE_H__
+
 #include "config.h"
 #include <vector>
 
@@ -28,3 +31,4 @@ class RegFile_1W2R {
 
   void tick() {}
 };
+#endif

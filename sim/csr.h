@@ -1,4 +1,5 @@
-
+#ifndef __CSR_H__
+#define __CSR_H__
 #include "config.h"
 #include <unordered_map>
 
@@ -23,3 +24,5 @@ class CSR {
     }
   }
 };
+
+#endif

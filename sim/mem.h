@@ -1,3 +1,6 @@
+#ifndef __MEM_H__
+#define __MEM_H__
+
 #include "config.h"
 #include "pipe_data.h"
 #include "ram.h"
@@ -25,7 +28,9 @@ class MemStage {
     }
     to_wb.alu_out = from_exe.alu_out;
     to_wb.dst_reg = from_exe.dst_reg;
+    to_wb.csr_out = from_exe.csr_out;
     to_wb.reg_we = from_exe.reg_we;
     to_wb.wb_sel = from_exe.wb_sel;
   }
 };
+#endif

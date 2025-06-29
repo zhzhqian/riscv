@@ -1,0 +1,6 @@
+#include "config.h"
+#include "fetch.h"
+#include "decode.h"
+#include "exe.h"
+#include "mem.h"
+#include "wb.h"

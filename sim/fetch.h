@@ -1,41 +1,50 @@
+#ifndef __FETCH_H__
+#define __FETCH_H__
+
 #include "config.h"
 #include "mem.h"
 #include "pipe_data.h"
 
 
 class Fetch{
-  IOMem<DataWidth> inst_mem;
+  SyncRamDP<DataWidth> inst_mem;
   RegVal pc, pc_next;
-  EXEToFetch &inpFromEXE;
-  DecodeToFetch &inpFromDecode;
-  FetchTodecode &outwrite;
+  EXEToFetch &fromEXE;
+  DecodeToFetch &fromDecode;
+  FetchTodecode &toDecode;
+  FetchToEXE &toExe;
 
   Fetch(RegVal start_addr,
         FetchTodecode &fetch2decode,
         DecodeToFetch &dec2fetch,
-        EXEToFetch &exe2fetch
+        EXEToFetch &exe2fetch,
+        FetchToEXE &fetch2exe
       )
   :pc_next(start_addr),
    inst_mem(INST_MEM_SIZE),
-   outwrite(fetch2decode),
-   inpFromDecode(dec2fetch),
-   inpFromEXE(exe2fetch)
+   toDecode(fetch2decode),
+   fromDecode(dec2fetch),
+   fromEXE(exe2fetch),
+   toExe(fetch2exe)
    {}
   void tick(){
     pc = pc_next;
     RegVal inst = inst_mem.read(pc);
-    if (inpFromEXE.bp_fail) {
-      pc_next = (inpFromEXE.branch_taken) ? inpFromEXE.jump_pc
-                                          : inpFromEXE.exe_pc + 4;
-    } else if (inpFromEXE.jump_taken) {
-      pc_next = inpFromEXE.jump_pc;
-    } else if (inpFromDecode.bp_taken) {
-      pc_next = inpFromDecode.bp_pc;
+    if (fromEXE.bp_fail) {
+      pc_next = (fromEXE.branch_taken) ? fromEXE.jump_pc
+                                          : fromEXE.exe_pc + 4;
+      /* TODO: flush exe state */
+      toExe.flush =true;
+    } else if (fromEXE.jump_taken) {
+      pc_next = fromEXE.jump_pc;
+    } else if (fromDecode.bp_taken) {
+      pc_next = fromDecode.bp_pc;
     } else {
       pc_next = pc + 4;
     }
 
-    outwrite.inst = inst;
-    outwrite.pc = pc;
+    toDecode.inst = inst;
+    toDecode.pc = pc;
   }
 };
+#endif
