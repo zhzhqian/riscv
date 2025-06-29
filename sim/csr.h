@@ -4,10 +4,13 @@
 
 class CSR {
   std::unordered_map<int, RegVal> data;
+  public:
   /* just give me a default constructor */
   RegVal read(int addr) {
     auto res = data.find(addr);
-    assert(res != data.end());
+    if(res == data.end())
+      return 0;
+    // assert(res != data.end());
     return data[addr];
   }
   void write(int addr, RegVal w_data) {

@@ -2,91 +2,7 @@
 #include "pipe_data.h"
 #include "artith_ops.h"
 #include <cstdint>
-
-#define BIT(x) (1UL << (x))
-//my definition of opcode
-#define LUI_OP 0b0110111
-#define AUIPC_OP 0b0010111
-#define JAL_OP 0b1101111
-#define JALR_OP 0b1100111
-
-#define BRANCH_OP 0b1100011
-
-#define LOAD_OP 0b0000011
-
-#define STORE_OP 0b0100011
-
-#define ARITH_IMM_OP 0b0010011
-
-#define ARITH_REG_OP 0b0110011
-
-#define CSR_OP 0b1110011
-#define CSRRWI_FUNCT 0b101
-#define CSRRW_FUNCT 0b001
-
-#define BEQ_FUNCT 0b000
-#define BNE_FUNCT 0b001
-#define BLT_FUNCT 0b100
-#define BGE_FUNCT 0b101
-#define BLTU_FUNCT 0b110
-#define BGEU_FUNCT 0b111
-
-
-#define LB_FUNCT 0b000
-#define LH_FUNCT 0b001
-#define LW_FUNCT 0b010
-#define LBU_FUNCT 0b100
-#define LHU_FUNCT 0b101
-
-#define SB_FUNCT 0b000
-#define SH_FUNCT 0b001
-#define SW_FUNCT 0b010
-
-
-#define ADDI_FUNCT 0b000
-#define SLTI_FUNCT 0b010
-#define SLTIU_FUNCT 0b011
-#define XORI_FUNCT 0b100
-#define ORI_FUNCT 0b110
-#define ANDI_FUNCT 0b111
-#define SLLI_FUNCT 0b001
-#define SRLI_FUNCT 0b101
-#define SRAI_FUNCT 0b101
-
-#define ADD_FUNCT 0b000
-#define SLL_FUNCT 0b001
-#define SLT_FUNCT 0b010
-#define SLTU_FUNCT 0b011
-#define XOR_FUNCT 0b100
-#define SRL_FUNCT 0b101
-#define OR_FUNCT 0b110
-#define AND_FUNCT 0b111
-
-
-
-enum MemOpSizeType{
-  Mem_OP_Byte = 0b000,
-  Mem_OP_Half = 0b001,
-  Mem_OP_WORD = 0b010,
-  Mem_OP_Byte_U = 0b100,
-  Mem_OP_Half_U = 0b101,
-};
-
-enum WriteBackSel{
-  WBSEL_00,
-  WBSEL_01,
-  WBSEL_10,
-  WBSEL_11,
-};
-
-enum ALUDataPort0 {
-  ALU_PORT0_PC,
-  ALU_PORT0_RS0
-};
-enum ALUDataPort1 {
-  ALU_PORT1_IMM,
-  ALU_PORT1_RS1
-};
+#include "regfile.h"
 
 static inline int funct_to_brachop(uint32_t funct){
   // funct equals branch op
@@ -137,43 +53,12 @@ static inline int arith_imm_funct_to_aluop(uint32_t funct, uint32_t bit_30){
   return funct;
 }
 
-struct DecodeToEXE {
-  int alu_op;
-  bool is_branch;
-  bool is_jump;
-  bool reg_we;
-  bool loadu;
-  RegVal rs0, rs1, imm;
-  int wb_sel;
-  int alu_sel0,alu_sel1;
-  uint32_t br_op; 
-  bool mem_rd, mem_wr;
-  int mem_op_size;
-  int csr_op;
-  DecodeToEXE(){
-    alu_op = ALU_OP_NONE;
-    is_branch = false;
-    is_jump = false;
-    reg_we =false;
-    loadu= false;
-    wb_sel = WBSEL_01;
-    mem_rd = false;
-    mem_wr = false;
-    mem_op_size = ;
-    
-  }
-};
-
-struct EXEToDecode {
-  bool branch_taken;
-};
-
 union InstType{
     uint32_t inst_raw;
     InstType(uint32_t inst){
       inst_raw=inst;
     }
-    uint32_t get_sign_mask(uint32_t sign, uint32_t bit_low, uint32_t bit_hi) {
+    static uint32_t get_sign_mask(uint32_t sign, uint32_t bit_low, uint32_t bit_hi) {
       u32 sign_mask = 0;
       if(sign) {
         sign_mask |= (~0U) & ((~0U) >> bit_hi) &((~0U) << bit_low);
@@ -267,32 +152,39 @@ class Decode {
   EXEToDecode &inpFromEXE;
   DecodeToEXE &outToEXE;
   RegVal inst;
+  RegFile_1W2R<RegVal> regfile;
+
   Decode(FetchTodecode &fetch_to_decode, EXEToDecode &exe_to_decode,
          DecodeToEXE &decode_to_exe)
       : inpFromFetch(fetch_to_decode), inpFromEXE(exe_to_decode),
-        outToEXE(decode_to_exe) {}
+        outToEXE(decode_to_exe),
+        regfile(32) {}
   void tick() {
     inst = inpFromFetch.inst;
     InstType inst_t = (InstType)inst;
     // default imm
     outToEXE.imm = inst_t.i_type.get_imm<RegVal>();
+    outToEXE.pc = inpFromFetch.pc;
+    int rs1= inst_t.r_type.rs1;
+    int rs2=inst_t.r_type.rs2;
+    outToEXE.dst_reg = inst_t.r_type.rd;
     switch (inst_t.i_type.opcode) {
       case(LUI_OP):
         outToEXE.reg_we = true;
         outToEXE.imm = inst_t.u_type.get_imm<RegVal>();
-        outToEXE.wb_sel = WBSEL_11;
+        outToEXE.wb_sel = WBSEL_ALU;
         break;
       case(AUIPC_OP):
         outToEXE.reg_we = true;
         outToEXE.imm = inst_t.u_type.get_imm<RegVal>();
         outToEXE.alu_sel0 = ALU_PORT0_PC;
-        outToEXE.wb_sel = WBSEL_01;
+        outToEXE.wb_sel = WBSEL_ALU;
         break;
       case(JAL_OP):
         outToEXE.reg_we = true;
         outToEXE.is_jump = true;
         outToEXE.alu_sel0 = ALU_PORT0_PC;
-        outToEXE.wb_sel = WBSEL_00;
+        outToEXE.wb_sel = WBSEL_;
         outToEXE.imm = inst_t.j_type.get_imm<RegVal>();
         break;
       case(JALR_OP):
@@ -313,11 +205,13 @@ class Decode {
         outToEXE.reg_we = true;
         outToEXE.mem_op_size = inst_t.i_type.funct3; 
         outToEXE.imm = inst_t.i_type.get_imm<RegVal>();
+        outToEXE.alu_op = ALU_OP_ADD;
         break;
       case(STORE_OP):
         outToEXE.mem_wr = true;
         outToEXE.mem_op_size = inst_t.s_type.funct3; 
         outToEXE.imm = inst_t.s_type.get_imm<RegVal>();
+        outToEXE.alu_op = ALU_OP_ADD;
         break;
       case(ARITH_IMM_OP):
         outToEXE.reg_we = true;
@@ -325,7 +219,7 @@ class Decode {
             inst_t.i_type.funct3 == SRLI_FUNCT  ){
           outToEXE.imm = inst_t.i_type.get_shm<RegVal>();
         }
-          outToEXE.alu_op = arith_imm_funct_to_aluop(inst_t.i_type.funct3, inst_t.inst_raw & BIT(31));
+        outToEXE.alu_op = arith_imm_funct_to_aluop(inst_t.i_type.funct3, inst_t.inst_raw & BIT(31));
         break;
       case(ARITH_REG_OP):
         outToEXE.reg_we = true;
@@ -333,15 +227,18 @@ class Decode {
         outToEXE.alu_op = arith_funct_to_aluop(inst_t.i_type.funct3, inst_t.inst_raw & BIT(31));
         break;
       case(CSR_OP):
-        outToEXE.imm = inst_t.i_type.get_immu<RegVal>();
-        if(inst_t.r_type.funct3 == CSRRW_FUNCT)
+        if(inst_t.r_type.funct3 == CSRRW_FUNCT) {
           outToEXE.csr_op = CSR_OP_RW;
-        else
+          outToEXE.csr_idx =inst_t.r_type.funct7;
+        } else {
           outToEXE.csr_op = CSR_OP_RWI;
+          outToEXE.imm = inst_t.r_type.funct3;
+          outToEXE.csr_idx =inst_t.r_type.funct7;
+        }
         break;
     }
-
-    
+    outToEXE.rs1 = regfile.read_port(rs2);
+    outToEXE.rs2 = regfile.read_port(rs2);
   }
 
   void control() {

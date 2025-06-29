@@ -6,10 +6,11 @@ template <typename Reg=RegVal>
 
 class RegFile_1W2R {
   std::vector<Reg> int_regfile;
+  public:
   RegFile_1W2R(int depth)
   : int_regfile(depth)
   {
-    
+    int_regfile[0] = 0;
   }
 
   Reg read_port(int idx){
@@ -18,6 +19,9 @@ class RegFile_1W2R {
   }
   
   void write_port(int idx, Reg data){
+    if(idx == 0){
+      return;
+    }
     assert(idx < int_regfile.siz());
     int_regfile[idx] = data;
   }

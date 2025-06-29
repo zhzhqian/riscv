@@ -10,3 +10,4 @@ using DataWidth=uint32_t;
 using u32=uint32_t;
 
 #define INST_MEM_SIZE (512 * 1024)
+#define DMEM_DPETH 16384
