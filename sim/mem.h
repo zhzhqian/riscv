@@ -9,12 +9,15 @@
 class MemStage {
   EXEToMem& from_exe;
   MemToWB& to_wb;
-  SyncRamDP<DataWidth> data_mem;
+  SyncRamDP<DataWidth> &data_mem;
+  public:
   MemStage(EXEToMem& exe_to_exe, 
-           MemToWB& mem_to_wb):
+           MemToWB& mem_to_wb,
+            SyncRamDP<DataWidth> &dmem
+         ):
   from_exe(exe_to_exe),
   to_wb(mem_to_wb),
-  data_mem(DMEM_DPETH)
+  data_mem(dmem)
   {
     
   }

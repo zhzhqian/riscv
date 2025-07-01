@@ -163,9 +163,11 @@ class Decode {
   MemToDecode &from_mem;
   RegVal inst;
   RegFile_1W2R<RegVal> regfile;
-
-  Decode(FetchTodecode &fetch_to_decode, EXEToDecode &exe_to_decode,
-         DecodeToEXE &decode_to_exe, WBToDecode &wb_to_decode,
+public:
+  Decode(FetchTodecode &fetch_to_decode,
+         EXEToDecode &exe_to_decode,
+         DecodeToEXE &decode_to_exe,
+         WBToDecode &wb_to_decode,
          MemToDecode &mem_to_decode)
       : from_fetch(fetch_to_decode), from_exe(exe_to_decode),
         to_exe(decode_to_exe), from_wb(wb_to_decode), from_mem(mem_to_decode),

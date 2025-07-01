@@ -6,6 +6,7 @@
 class WriteBack{
   MemToWB& from_mem;
   WBToDecode& to_decode;
+  public:
   WriteBack(MemToWB& mem_to_wb,
             WBToDecode& wb_to_dec) :
   from_mem(mem_to_wb),

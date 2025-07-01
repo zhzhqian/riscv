@@ -7,26 +7,30 @@
 
 
 class Fetch{
-  SyncRamDP<DataWidth> inst_mem;
+  SyncRamDP<DataWidth> &inst_mem;
   RegVal pc, pc_next;
   EXEToFetch &fromEXE;
   DecodeToFetch &fromDecode;
   FetchTodecode &toDecode;
   FetchToEXE &toExe;
-
-  Fetch(RegVal start_addr,
+  RegVal reset_pc;
+public:
+  Fetch(RegVal reset_pc,
         FetchTodecode &fetch2decode,
         DecodeToFetch &dec2fetch,
         EXEToFetch &exe2fetch,
-        FetchToEXE &fetch2exe
+        FetchToEXE &fetch2exe,
+        SyncRamDP<DataWidth> &imem
       )
-  :pc_next(start_addr),
-   inst_mem(INST_MEM_SIZE),
+  :inst_mem(imem),
    toDecode(fetch2decode),
    fromDecode(dec2fetch),
    fromEXE(exe2fetch),
    toExe(fetch2exe)
-   {}
+   {
+     this->reset_pc = reset_pc;
+     reset();
+   }
   void tick(){
     pc = pc_next;
     RegVal inst = inst_mem.read(pc);
@@ -45,6 +49,9 @@ class Fetch{
 
     toDecode.inst = inst;
     toDecode.pc = pc;
+  }
+  void reset(){
+    pc_next = reset_pc;
   }
 };
 #endif

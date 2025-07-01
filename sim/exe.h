@@ -15,9 +15,11 @@ class Execution {
   FetchToEXE &from_fetch;
   ALU alu;
   CSR csr;
-
-  Execution(EXEToFetch &exe_to_fecth, DecodeToEXE &dec_to_exe,
-            EXEToMem &exe_to_mem, FetchToEXE &fetch_to_exe)
+public:
+  Execution(EXEToFetch &exe_to_fecth,
+            DecodeToEXE &dec_to_exe,
+            EXEToMem &exe_to_mem,
+            FetchToEXE &fetch_to_exe)
       : to_fetch(exe_to_fecth), from_decode(dec_to_exe), to_mem(exe_to_mem),
         from_fetch(fetch_to_exe) {}
 

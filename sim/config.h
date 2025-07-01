@@ -13,6 +13,9 @@ using DataWidth=uint32_t;
 using u32=uint32_t;
 
 #define INST_MEM_SIZE (512 * 1024)
+#define INST_MEM_BASE 
 #define DMEM_DPETH 16384
+#define DMEM_BASE 16384
+#define PC_RESET_VALUE (0x40000000)
 
 #endif
