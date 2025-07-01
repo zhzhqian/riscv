@@ -4,10 +4,11 @@
 #include "config.h"
 #include "mem.h"
 #include "pipe_data.h"
+#include <iomanip>
 
 
 class Fetch{
-  SyncRamDP<DataWidth> &inst_mem;
+  SyncRamDP<RegVal> &inst_mem;
   RegVal pc, pc_next;
   EXEToFetch &fromEXE;
   DecodeToFetch &fromDecode;
@@ -20,7 +21,7 @@ public:
         DecodeToFetch &dec2fetch,
         EXEToFetch &exe2fetch,
         FetchToEXE &fetch2exe,
-        SyncRamDP<DataWidth> &imem
+        SyncRamDP<RegVal> &imem
       )
   :inst_mem(imem),
    toDecode(fetch2decode),
@@ -33,19 +34,27 @@ public:
    }
   void tick(){
     pc = pc_next;
-    RegVal inst = inst_mem.read(pc);
+    toExe.flush =false;
+    toDecode.flush =false;
     if (fromEXE.bp_fail) {
-      pc_next = (fromEXE.branch_taken) ? fromEXE.jump_pc
+      pc = (fromEXE.branch_taken) ? fromEXE.jump_pc
                                           : fromEXE.exe_pc + 4;
-      /* TODO: flush exe state */
-      toExe.flush =true;
+      /* flush decode and exe, since they are handling
+       * wrong instruction.
+       */
+      // toDecode.flush =true;
+      // toExe.flush =true;
     } else if (fromEXE.jump_taken) {
-      pc_next = fromEXE.jump_pc;
+      pc = fromEXE.jump_pc;
+      // toExe.flush =true;
+      // toDecode.flush =true;
     } else if (fromDecode.bp_taken) {
-      pc_next = fromDecode.bp_pc;
-    } else {
-      pc_next = pc + 4;
+      pc = fromDecode.bp_pc;
+      // toDecode.flush =true;
     }
+    pc_next = pc + 4;
+    RegVal inst = inst_mem.read(pc);
+    std::cout<< "executing: "<<std::hex<<std::setw(8) << inst<<std::end;
 
     toDecode.inst = inst;
     toDecode.pc = pc;

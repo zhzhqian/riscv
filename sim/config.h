@@ -8,10 +8,12 @@
 
 using RegVal=int32_t;
 using RegVal_u=uint32_t;
-using AddrWidth=uint32_t;
-using DataWidth=uint32_t;
 using u32=uint32_t;
 
+#define AddrWidth 32
+#define DataWidth 32
+
+#define XLEN 32
 #define INST_MEM_SIZE (512 * 1024)
 #define INST_MEM_BASE 
 #define DMEM_DPETH 16384

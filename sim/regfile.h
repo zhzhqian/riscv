@@ -17,7 +17,7 @@ class RegFile_1W2R {
   }
 
   Reg read_port(int idx){
-    assert(idx < int_regfile.siz());
+    assert(idx < int_regfile.size());
     return int_regfile[idx];
   }
   
@@ -25,7 +25,7 @@ class RegFile_1W2R {
     if(idx == 0){
       return;
     }
-    assert(idx < int_regfile.siz());
+    assert(idx < int_regfile.size());
     int_regfile[idx] = data;
   }
 

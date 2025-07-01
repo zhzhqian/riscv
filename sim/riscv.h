@@ -27,8 +27,8 @@ class TinyRiscv {
   MemToDecode mem_to_decode;
   EXEToMem exe_to_mem;
   MemToWB mem_to_wb;
-  SyncRamDP<DataWidth> imem;
-  SyncRamDP<DataWidth> dmem;
+  SyncRamDP<RegVal> imem;
+  SyncRamDP<RegVal> dmem;
 
 public:
   TinyRiscv();

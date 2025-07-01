@@ -25,6 +25,8 @@ public:
 
   void tick() {
     RegVal alu_in0, alu_in1;
+    to_mem.flush();
+    to_fetch.flush();
     // first, handle alu calc
     alu_in0 = (from_decode.alu_sel0 == ALU_PORT0_PC) ? from_decode.pc
                                                      : from_decode.rs1;
@@ -34,9 +36,9 @@ public:
 
     // second, handle csrrw
     to_mem.csr_out = csr.read(from_decode.csr_idx);
-    if (from_decode.csr_op != CSR_OP_RW) {
+    if (from_decode.csr_op == CSR_OP_RW) {
       csr.write(from_decode.csr_idx, from_decode.rs1);
-    } else if (from_decode.csr_op != CSR_OP_RWI) {
+    } else if (from_decode.csr_op == CSR_OP_RWI) {
       csr.write(from_decode.csr_idx, from_decode.imm);
     }
 
@@ -55,6 +57,7 @@ public:
     to_mem.wb_sel = from_decode.wb_sel;
     to_mem.loadu = from_decode.loadu;
     to_mem.rs2 = from_decode.rs2;
+    to_mem.dst_reg = from_decode.dst_reg;
 
     // don't use branch predict now
     to_fetch.bp_fail = false;
@@ -62,6 +65,7 @@ public:
     // branch and jump both use jump_pc
     to_fetch.jump_pc = to_mem.alu_out;
     to_fetch.jump_taken = from_decode.is_jump;
+    to_fetch.exe_pc = from_decode.pc;
 
     // request from fetch stage to execution stage
     if (from_fetch.flush) {

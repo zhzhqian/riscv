@@ -12,7 +12,7 @@ static inline int funct_to_brachop(uint32_t funct) {
   return funct;
 }
 
-static inline int arith_funct_to_aluop(uint32_t funct, uint32_t bit_30) {
+static inline int arith_imm_funct_to_aluop(uint32_t funct, uint32_t bit_30) {
   switch (funct) {
   case ADDI_FUNCT:
     return ALU_OP_ADD;
@@ -39,7 +39,7 @@ static inline int arith_funct_to_aluop(uint32_t funct, uint32_t bit_30) {
   return funct;
 }
 // TODO: sel logic shift or arith shift
-static inline int arith_imm_funct_to_aluop(uint32_t funct, uint32_t bit_30) {
+static inline int arith_funct_to_aluop(uint32_t funct, uint32_t bit_30) {
   switch (funct) {
   case ADD_FUNCT:
     if (bit_30)
@@ -72,8 +72,8 @@ static inline int arith_imm_funct_to_aluop(uint32_t funct, uint32_t bit_30) {
 union InstType {
   uint32_t inst_raw;
   InstType(uint32_t inst) { inst_raw = inst; }
-  static uint32_t get_sign_mask(uint32_t sign, uint32_t bit_low,
-                                uint32_t bit_hi) {
+  static uint32_t get_sign_mask(uint32_t sign, uint32_t bit_low =0,
+                                uint32_t bit_hi=31) {
     u32 sign_mask = 0;
     if (sign) {
       sign_mask |= (~0U) & ((~0U) >> bit_hi) & ((~0U) << bit_low);
@@ -97,13 +97,13 @@ union InstType {
     uint32_t imm1 : 7;
     template <typename T> T get_imm() {
       return (T)(this->imm0 | (this->imm1 << 5) |
-                 InstType.get_sign_mask(this->imm1 >> 6));
+                 get_sign_mask(this->imm1 >> 6));
     }
     template <typename T> T get_shm() {
-      return (T)(this->imm0 | InstType.get_sign_mask(this->imm1 >> 6));
+      return (T)(this->imm0 | get_sign_mask(this->imm1 >> 6));
     }
     template <typename T> T get_immu() {
-      return (T)(this->imm0 | (this->imm1 << 5) | InstType.get_sign_mask(0));
+      return (T)(this->imm0 | (this->imm1 << 5) | get_sign_mask(0));
     }
   } i_type;
   struct SType {
@@ -115,7 +115,7 @@ union InstType {
     uint32_t imm_hi : 7;
     template <typename T> T get_imm() {
       return (T)(this->imm_lo | (this->imm_hi << 5) |
-                 InstType.get_sign_mask(this->imm_hi >> 6));
+                 get_sign_mask(this->imm_hi >> 6));
     }
   } s_type;
   struct BType {
@@ -129,7 +129,7 @@ union InstType {
     uint32_t imm_12 : 1;
     template <typename T> T get_imm() {
       return (T)((this->imm_11 << 12) | (this->imm_11 << 11) | this->imm_lo |
-                 (this->imm_hi << 4) | InstType.get_sign_mask(this->imm_12));
+                 (this->imm_hi << 4) | get_sign_mask(this->imm_12));
     }
   } b_type;
   struct UType {
@@ -148,7 +148,7 @@ union InstType {
     template <typename T> T get_imm() {
       return (T)((this->imm_20 << 20) | (this->imm_19_12 << 12) |
                  (this->imm_11 << 11) | (this->imm_10_1 << 1) |
-                 InstType.get_sign_mask(this->imm_20));
+                 get_sign_mask(this->imm_20));
     }
   } j_type;
 };
@@ -157,10 +157,11 @@ static_assert(sizeof(InstType) == 4, "instruction format is not correct");
 
 class Decode {
   FetchTodecode &from_fetch;
-  DecodeToEXE &to_exe;
   EXEToDecode &from_exe;
   WBToDecode &from_wb;
   MemToDecode &from_mem;
+  DecodeToEXE &to_exe;
+  DecodeToFetch &to_fetch;
   RegVal inst;
   RegFile_1W2R<RegVal> regfile;
 public:
@@ -168,19 +169,26 @@ public:
          EXEToDecode &exe_to_decode,
          DecodeToEXE &decode_to_exe,
          WBToDecode &wb_to_decode,
-         MemToDecode &mem_to_decode)
+         MemToDecode &mem_to_decode,
+         DecodeToFetch &dec_to_fetch
+       )
       : from_fetch(fetch_to_decode), from_exe(exe_to_decode),
-        to_exe(decode_to_exe), from_wb(wb_to_decode), from_mem(mem_to_decode),
+        from_wb(wb_to_decode), from_mem(mem_to_decode),
+        to_exe(decode_to_exe),to_fetch(dec_to_fetch),
         regfile(32) {}
   void tick() {
     int rs1 = 0;
     int rs2 = 0;
     inst = from_fetch.inst;
     InstType inst_t = (InstType)inst;
+    // reset signal
     // default imm
+    to_exe.flush();
+    to_fetch.flush();
     to_exe.imm = inst_t.i_type.get_imm<RegVal>();
     to_exe.pc = from_fetch.pc;
     to_exe.dst_reg = inst_t.r_type.rd;
+    to_exe.alu_op = ALU_OP_ADD;
     switch (inst_t.i_type.opcode) {
     case (LUI_OP):
       to_exe.reg_we = true;
@@ -244,14 +252,14 @@ public:
         to_exe.imm = inst_t.i_type.get_shm<RegVal>();
       }
       to_exe.alu_op = arith_imm_funct_to_aluop(inst_t.i_type.funct3,
-                                                 inst_t.inst_raw & BIT(31));
+                                                 inst_t.inst_raw & BIT(30));
       rs1 = inst_t.i_type.rs1;
       break;
     case (ARITH_REG_OP):
       to_exe.reg_we = true;
       to_exe.alu_sel1 = ALU_PORT1_RS2;
       to_exe.alu_op =
-          arith_funct_to_aluop(inst_t.i_type.funct3, inst_t.inst_raw & BIT(31));
+          arith_funct_to_aluop(inst_t.i_type.funct3, inst_t.inst_raw & BIT(30));
       rs1 = inst_t.r_type.rs1;
       rs2 = inst_t.r_type.rs2;
       break;
@@ -272,15 +280,22 @@ public:
     }
     to_exe.rs1 = regfile.read_port(rs1);
     to_exe.rs2 = regfile.read_port(rs2);
+    to_exe.pc = from_fetch.pc;
 
     // assume every branch taken
-    to_exe.bp_taken = true;
+    to_exe.bp_taken   = true && to_exe.is_branch;
+    to_fetch.bp_taken = true && to_exe.is_branch;
 
     if (from_wb.reg_we) {
       regfile.write_port(from_wb.dst_reg, from_wb.wb_data);
     }
 
     check_data_hazard(rs1, rs2);
+    if(from_fetch.flush){
+      to_exe.flush();
+      to_fetch.flush();
+
+    }
   }
 
   void check_data_hazard(int rs1 , int rs2) {

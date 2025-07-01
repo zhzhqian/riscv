@@ -9,11 +9,11 @@
 class MemStage {
   EXEToMem& from_exe;
   MemToWB& to_wb;
-  SyncRamDP<DataWidth> &data_mem;
+  SyncRamDP<RegVal> &data_mem;
   public:
   MemStage(EXEToMem& exe_to_exe, 
            MemToWB& mem_to_wb,
-            SyncRamDP<DataWidth> &dmem
+            SyncRamDP<RegVal> &dmem
          ):
   from_exe(exe_to_exe),
   to_wb(mem_to_wb),
@@ -27,7 +27,7 @@ class MemStage {
       to_wb.mem_data = data_mem.read(from_exe.alu_out);
     }
     if(from_exe.mem_wr) {
-      data_mem.write(from_exe.alu_out,from_exe.rs2);
+      data_mem.write(from_exe.alu_out, from_exe.rs2);
     }
     to_wb.alu_out = from_exe.alu_out;
     to_wb.dst_reg = from_exe.dst_reg;

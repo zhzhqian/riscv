@@ -98,11 +98,15 @@ struct HandShake{
 struct FetchTodecode{
   RegVal inst;
   RegVal pc;
+  bool flush;
+  FetchTodecode():flush(false) {}
 };
 
 struct DecodeToFetch{
   RegVal bp_pc;  
   bool bp_taken;
+  DecodeToFetch() :bp_taken(false){}
+  void flush() {bp_taken = false;}
 };
 
 struct EXEToFetch{
@@ -111,6 +115,7 @@ struct EXEToFetch{
   bool jump_taken;
   bool bp_fail;
   bool branch_taken;
+  EXEToFetch(): jump_taken(false),bp_fail(false),branch_taken(false){}
   void flush(){
     jump_taken = false;
     bp_fail =false;
@@ -138,8 +143,8 @@ struct DecodeToEXE {
   static DecodeToEXE* Bubble() {
     return new DecodeToEXE();
   }
-  
-  DecodeToEXE(){
+  void flush() {
+    bp_taken = false;
     alu_op = ALU_OP_NONE;
     is_branch = false;
     is_jump = false;
@@ -151,6 +156,10 @@ struct DecodeToEXE {
     mem_op_size = Mem_OP_WORD;
     csr_op = CSR_OP_NONE;
   }
+  
+  DecodeToEXE(){
+    flush();
+  }
 };
 
 struct EXEToDecode {
@@ -158,6 +167,7 @@ struct EXEToDecode {
   bool reg_we;
   int dst_reg;
   RegVal dst_reg_data;
+  EXEToDecode() :reg_we(false) {}
 };
 
 struct EXEToMem {
@@ -171,6 +181,11 @@ struct EXEToMem {
   bool branch_taken;
   int dst_reg;
   RegVal rs2;
+  EXEToMem() :reg_we(false),
+    mem_rd(false),
+    mem_wr(false),
+    branch_taken(false)
+    {}
   void flush() {
     reg_we = false;
     mem_rd = false;
@@ -185,22 +200,26 @@ struct MemToWB {
   int dst_reg;
   bool reg_we;
   int wb_sel;
+  MemToWB() :reg_we(false){}
 };
 
 struct WBToDecode {
   RegVal wb_data;
   int dst_reg;
   bool reg_we;
+  WBToDecode() :reg_we(false){}
 };
 
 struct FetchToEXE {
   bool flush;
+  FetchToEXE() :flush(false){}
 };
 
 struct MemToDecode {
   bool reg_we;
   int dst_reg;
   RegVal dst_reg_data;
+  MemToDecode() :reg_we(false){}
 };
 
 #endif

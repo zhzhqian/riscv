@@ -7,7 +7,7 @@ void print_usage(const char* name) {
   std::cerr <<"-i: raw image file of instructions"<<std::endl;
 }
 
-int main(int argc, const char* argv[]) {
+int main(int argc, char* argv[]) {
    int opt;
     std::string mif_file, image_file;
     while ((opt = getopt(argc, argv, "m:i::")) != -1) {
