@@ -2,13 +2,13 @@
 #define __FETCH_H__
 
 #include "config.h"
-#include "mem.h"
+#include "memory.h"
 #include "pipe_data.h"
 #include <iomanip>
 
 
 class Fetch{
-  SyncRamDP<RegVal> &inst_mem;
+  MemoryPortMaster<RegVal, RegVal> &inst_mem_port;
   RegVal pc, pc_next;
   EXEToFetch &fromEXE;
   DecodeToFetch &fromDecode;
@@ -21,9 +21,9 @@ public:
         DecodeToFetch &dec2fetch,
         EXEToFetch &exe2fetch,
         FetchToEXE &fetch2exe,
-        SyncRamDP<RegVal> &imem
+        MemoryPortMaster<RegVal, RegVal> &imem_port
       )
-  :inst_mem(imem),
+  :inst_mem_port(imem_port),
    toDecode(fetch2decode),
    fromDecode(dec2fetch),
    fromEXE(exe2fetch),
@@ -53,8 +53,8 @@ public:
       // toDecode.flush =true;
     }
     pc_next = pc + 4;
-    RegVal inst = inst_mem.read(pc);
-    std::cout<< "executing: "<<std::hex<<std::setw(8) << inst<<std::end;
+    RegVal inst = inst_mem_port.issue_read(pc, sizeof(RegVal));
+    std::cout<< "executing: "<<std::hex<<std::setw(8) << inst<< std::endl;
 
     toDecode.inst = inst;
     toDecode.pc = pc;

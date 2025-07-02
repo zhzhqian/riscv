@@ -174,13 +174,14 @@ struct EXEToMem {
   RegVal alu_out;
   RegVal csr_out;
   RegVal pc;
+  RegVal rs2;
   bool reg_we;
-  int wb_sel;
   bool loadu;
   bool mem_rd,mem_wr;
   bool branch_taken;
   int dst_reg;
-  RegVal rs2;
+  int wb_sel;
+  int mem_op_size;
   EXEToMem() :reg_we(false),
     mem_rd(false),
     mem_wr(false),

@@ -53,6 +53,7 @@ public:
     // passthrough signal from decode
     to_mem.mem_rd = from_decode.mem_rd;
     to_mem.mem_wr = from_decode.mem_wr;
+    to_mem.mem_op_size = from_decode.mem_op_size;
     to_mem.reg_we = from_decode.reg_we;
     to_mem.wb_sel = from_decode.wb_sel;
     to_mem.loadu = from_decode.loadu;

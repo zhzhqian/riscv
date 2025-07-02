@@ -1,9 +1,58 @@
-#include "config.h"
-#include "ram.h"
+#ifndef __MEMORY_H__
+#define __MEMORY_H__
 
-template <typename DataType = RegVal>
-DataType substitute_bit(DataType data_sub, DataType data_ori, int bit_hi,int bit_low){
-  return ;
+#include "config.h"
+// #include "ram.h"
+#include <cmath>
+#include <vector>
+
+template <typename MemCell = RegVal, typename AddrType = RegVal>
+class MemoryUnit {
+public:
+  virtual void write(AddrType addr, MemCell w_data) = 0;
+  virtual MemCell read(AddrType addr) = 0;
+};
+
+template <typename MemCell = RegVal, typename AddrType = RegVal>
+class SyncRamDP : public MemoryUnit<MemCell, AddrType> {
+private:
+  std::vector<MemCell> data;
+
+public:
+  SyncRamDP() {}
+  SyncRamDP(int memsize) : data(memsize) {}
+  SyncRamDP(std::vector<MemCell> &init_data) : data(init_data) {}
+  MemCell read(AddrType addr) {
+    assert(addr < data.size());
+    return data[addr];
+  }
+  void write(AddrType addr, MemCell w_data) {
+    assert(addr < data.size());
+    data[addr] = w_data;
+  }
+  SyncRamDP &operator=(const std::vector<MemCell> &o) {
+    this->data = o;
+    return *this;
+  }
+};
+
+template <typename DataType>
+DataType substitute_bit(DataType data_sub, DataType data_ori, int bit_hi,
+                        int bit_low) {
+  /* when bit_lo:16, bit_hi:23
+   * mask: 0x00ff0000
+   * mask_lo: 0x0000ffff
+   * mask_hi: 0x00ffffff
+   */
+  DataType mask_hi = (((DataType)1) << (bit_hi + 1));
+  // in case of cyclic shift
+  if (mask_hi == 1)
+    mask_hi = (DataType)-1;
+  else
+    mask_hi -= 1;
+  DataType mask_lo = (((DataType)1) << bit_low) - 1;
+  DataType mask = mask_hi ^ mask_lo;
+  return (data_sub & (~mask)) | (mask & (data_ori << bit_low));
 }
 
 template <typename MemCell = RegVal, typename AddrType = RegVal>
@@ -11,55 +60,86 @@ class MemoryPortMaster;
 
 template <typename MemCell = RegVal, typename AddrType = RegVal>
 class MemoryPortSlave {
-  MemoryUnit<MemCell,AddrType> *mem;
-  MemoryPortMaster<MemCell,AddrType>* to;
-  AddrType mem_base, mem_size;
-public:
-  MemoryPortSlave(){
-    to = nullptr;
-    mem = nullptr;
-  }
-  void attach_mem(MemoryUnit<MemCell,AddrType>* attached_mem,AddrType base, AddrType size){
-    this->mem_base = base;
-    this->mem_size = size;
-    this->mem = attached_mem;
-  }
-  void receive_write(AddrType addr, MemCell data, int size)  {
-    assert(to != nullptr);
-    assert(size <= sizeof(MemCell));
-    assert(addr >= mem_base && addr < mem_base + mem_size);
-    // unsupport unaligned access.
-    assert((addr & (size -1)) != 0);
-    AddrType offset = addr - mem_base;
-    if(size < sizeof(data)){
-      // TODO: right shift
-      MemCell read_data = mem->read(addr  / (size));
-      data = read_data &(mask) | data;
+
+  struct AttachedMem {
+    MemoryUnit<MemCell, AddrType> *mem;
+    AddrType mem_base, mem_size;
+    AttachedMem(MemoryUnit<MemCell, AddrType> *mem, AddrType mem_base,
+                AddrType mem_size) {
+      this->mem = mem;
+      this->mem_base = mem_base;
+      this->mem_size = mem_size;
     }
-    mem->write(offset,  data);
+  };
+  std::vector<AttachedMem> attached_mem;
+
+public:
+  MemoryPortMaster<MemCell, AddrType> *to;
+  MemoryPortSlave() {}
+  void attach_mem(MemoryUnit<MemCell, AddrType> *mem, AddrType base,
+                  AddrType size) {
+    // TODO: check if address range overlap
+    this->attached_mem.push_back(AttachedMem(mem, base, size));
+    // this->mem_base = base;
+    // this->mem_size = size;
+    // this->mem = attached_mem;
   }
-  MemCell receive_read(AddrType addr,int size)  {
+  void receive_write(AddrType addr, MemCell data, int size) {
     assert(to != nullptr);
     assert(size <= sizeof(MemCell));
-    assert(addr >= mem_base && addr < mem_base + mem_size);
-    return mem->read(addr);
+    // assert(addr >= mem_base && addr < mem_base + mem_size);
+    // unsupport unaligned access.
+    assert((addr & (size - 1)) != 0);
+    int offset = addr & ((sizeof(MemCell) - 1));
+    for (auto att_mem : attached_mem) {
+      if (att_mem.mem_base < addr && att_mem.mem_base + att_mem.mem_size > addr) {
+        if (size < sizeof(data)) {
+          MemCell read_data =
+              att_mem.mem->read(addr / sizeof(MemCell));
+          data = substitute_bit(read_data, data, (offset + size) * 8 - 1,
+                                offset * 8);
+        }
+        att_mem.mem->write(addr, data);
+      }
+      break;
+    }
+  }
+  MemCell receive_read(AddrType addr, int size) {
+    assert(to != nullptr);
+    assert(size <= sizeof(MemCell));
+    // assert(addr >= mem_base && addr < mem_base + mem_size);
+    int offset = addr & ((sizeof(MemCell) - 1));
+    MemCell data;
+    for (auto att_mem : attached_mem) {
+      if (att_mem.mem_base < addr && att_mem.mem_base + att_mem.mem_size > addr) {
+        if (size < sizeof(MemCell)) {
+          MemCell read_data =
+              att_mem.mem->read(addr / sizeof(MemCell));
+          data = substitute_bit(read_data, data, (offset + size) * 8 - 1,
+                                offset * 8);
+          data >>= offset * 8;
+        }
+        break;
+      }
+    }
+    return data;
   }
 };
 
-template <typename MemCell, typename AddrType>
-class MemoryPortMaster {
-  MemoryPortSlave<RegVal,AddrType>* to;
+template <typename MemCell, typename AddrType> class MemoryPortMaster {
+  MemoryPortSlave<RegVal, AddrType> *to;
+
 public:
-  MemoryPortMaster() {
-  }
-  void connect(MemoryPortSlave<RegVal,AddrType>* slave)  {
+  MemoryPortMaster() {}
+  void connect(MemoryPortSlave<RegVal, AddrType> *slave) {
     to = slave;
     slave->to = this;
   }
-  void issue_write(AddrType addr, MemCell data, int size)  {
-      to->receive_write(addr, data, size);
-    }
-  MemCell issue_read(AddrType addr,int size)  {
-      return to->receive_read(addr, size);
+  void issue_write(AddrType addr, MemCell data, int size) {
+    to->receive_write(addr, data, size);
+  }
+  MemCell issue_read(AddrType addr, int size) {
+    return to->receive_read(addr, size);
   }
 };
+#endif

@@ -3,10 +3,9 @@
 #include "decode.h"
 #include "exe.h"
 #include "fetch.h"
-#include "mem.h"
+#include "memory.h"
+#include "mem_stage.h"
 #include "wb.h"
-#include <fstream>
-#include <iomanip>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -27,13 +26,11 @@ class TinyRiscv {
   MemToDecode mem_to_decode;
   EXEToMem exe_to_mem;
   MemToWB mem_to_wb;
-  SyncRamDP<RegVal> imem;
-  SyncRamDP<RegVal> dmem;
 
 public:
+  MemoryPortMaster<RegVal, RegVal> imem_port;
+  MemoryPortMaster<RegVal, RegVal> dmem_port;
   TinyRiscv();
   void reset();
-  void load_image(std::string file_name);
-  void load_mif(std::string file_name);
   void tick();
 };

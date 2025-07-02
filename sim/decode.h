@@ -12,6 +12,27 @@ static inline int funct_to_brachop(uint32_t funct) {
   return funct;
 }
 
+static inline int store_mem_op_size(uint32_t funct){
+  switch(funct) {
+    case SB_FUNCT: return 1;
+    case SH_FUNCT: return 2;
+    case SW_FUNCT: return 4;
+  }
+  return 0;
+}
+
+static inline int load_mem_op_size(uint32_t funct){
+  
+  switch(funct) {
+    case LB_FUNCT : return 1;
+    case LH_FUNCT : return 2;
+    case LW_FUNCT : return 4;
+    case LBU_FUNCT : return 1;
+    case LHU_FUNCT : return 2;
+  }
+  return 0;
+}
+
 static inline int arith_imm_funct_to_aluop(uint32_t funct, uint32_t bit_30) {
   switch (funct) {
   case ADDI_FUNCT:
@@ -228,7 +249,7 @@ public:
     case (LOAD_OP):
       to_exe.mem_rd = true;
       to_exe.reg_we = true;
-      to_exe.mem_op_size = inst_t.i_type.funct3;
+      to_exe.mem_op_size = load_mem_op_size(inst_t.i_type.funct3);
       to_exe.imm = inst_t.i_type.get_imm<RegVal>();
       to_exe.alu_op = ALU_OP_ADD;
       to_exe.alu_sel0 = ALU_PORT0_RS1;
@@ -237,7 +258,7 @@ public:
       break;
     case (STORE_OP):
       to_exe.mem_wr = true;
-      to_exe.mem_op_size = inst_t.s_type.funct3;
+      to_exe.mem_op_size = store_mem_op_size(inst_t.s_type.funct3);
       to_exe.imm = inst_t.s_type.get_imm<RegVal>();
       to_exe.alu_op = ALU_OP_ADD;
       to_exe.alu_sel0 = ALU_PORT0_RS1;
