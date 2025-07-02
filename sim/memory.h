@@ -1,6 +1,11 @@
 #include "config.h"
 #include "ram.h"
 
+template <typename DataType = RegVal>
+DataType substitute_bit(DataType data_sub, DataType data_ori, int bit_hi,int bit_low){
+  return ;
+}
+
 template <typename MemCell = RegVal, typename AddrType = RegVal>
 class MemoryPortMaster;
 
@@ -21,11 +26,24 @@ public:
   }
   void receive_write(AddrType addr, MemCell data, int size)  {
     assert(to != nullptr);
+    assert(size <= sizeof(MemCell));
     assert(addr >= mem_base && addr < mem_base + mem_size);
+    // unsupport unaligned access.
+    assert((addr & (size -1)) != 0);
     AddrType offset = addr - mem_base;
+    if(size < sizeof(data)){
+      // TODO: right shift
+      MemCell read_data = mem->read(addr  / (size));
+      data = read_data &(mask) | data;
+    }
     mem->write(offset,  data);
   }
-  MemCell receive_read(AddrType addr,int size)  {}
+  MemCell receive_read(AddrType addr,int size)  {
+    assert(to != nullptr);
+    assert(size <= sizeof(MemCell));
+    assert(addr >= mem_base && addr < mem_base + mem_size);
+    return mem->read(addr);
+  }
 };
 
 template <typename MemCell, typename AddrType>
