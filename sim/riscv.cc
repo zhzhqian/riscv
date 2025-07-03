@@ -19,15 +19,12 @@ void TinyRiscv::reset() {
 }
 
 
-static unsigned long cycles = 0;
 void TinyRiscv::tick() {
-  std::cout << "simulating cycle:" << cycles << std::endl;
   fetch.tick();
   dec.tick();
   exe.tick();
   mem.tick();
   wb.tick();
-  cycles++;
 }
 
 

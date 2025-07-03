@@ -80,9 +80,6 @@ public:
                   AddrType size) {
     // TODO: check if address range overlap
     this->attached_mem.push_back(AttachedMem(mem, base, size));
-    // this->mem_base = base;
-    // this->mem_size = size;
-    // this->mem = attached_mem;
   }
   void receive_write(AddrType addr, MemCell data, int size) {
     assert(to != nullptr);
@@ -90,12 +87,12 @@ public:
     // assert(addr >= mem_base && addr < mem_base + mem_size);
     // unsupport unaligned access.
     assert((addr & (size - 1)) != 0);
-    int offset = addr & ((sizeof(MemCell) - 1));
+    int offset = addr & ((AddrType)(sizeof(MemCell) - 1));
     for (auto att_mem : attached_mem) {
-      if (att_mem.mem_base < addr && att_mem.mem_base + att_mem.mem_size > addr) {
+      if (att_mem.mem_base <= addr &&
+          att_mem.mem_base + att_mem.mem_size > addr) {
         if (size < sizeof(data)) {
-          MemCell read_data =
-              att_mem.mem->read(addr / sizeof(MemCell));
+          MemCell read_data = att_mem.mem->read((addr - att_mem.mem_base) / sizeof(MemCell));
           data = substitute_bit(read_data, data, (offset + size) * 8 - 1,
                                 offset * 8);
         }
@@ -107,22 +104,22 @@ public:
   MemCell receive_read(AddrType addr, int size) {
     assert(to != nullptr);
     assert(size <= sizeof(MemCell));
-    // assert(addr >= mem_base && addr < mem_base + mem_size);
-    int offset = addr & ((sizeof(MemCell) - 1));
-    MemCell data;
+    // use -1 to indicate wrong addr
+    MemCell read_data = -1;
+    AddrType offset = addr & ((AddrType)(sizeof(MemCell) - 1));
     for (auto att_mem : attached_mem) {
-      if (att_mem.mem_base < addr && att_mem.mem_base + att_mem.mem_size > addr) {
+      if (att_mem.mem_base <= addr &&
+          att_mem.mem_base + att_mem.mem_size > addr) {
+        read_data = att_mem.mem->read((addr - att_mem.mem_base) / sizeof(MemCell));
         if (size < sizeof(MemCell)) {
-          MemCell read_data =
-              att_mem.mem->read(addr / sizeof(MemCell));
-          data = substitute_bit(read_data, data, (offset + size) * 8 - 1,
-                                offset * 8);
-          data >>= offset * 8;
+          read_data =
+              substitute_bit(0, read_data, (offset + size) * 8 - 1, offset * 8);
+          read_data >>= offset * 8;
         }
         break;
       }
     }
-    return data;
+    return read_data;
   }
 };
 

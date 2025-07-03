@@ -15,11 +15,11 @@ public:
   MemoryPortSlave<RegVal, RegVal> port0;
   MemoryPortSlave<RegVal, RegVal> port1;
   MemSystem() : imem(INST_MEM_SIZE), dmem(DMEM_DPETH) {
-    // port to cpu data port
-    port0.attach_mem(&imem, PC_RESET_VALUE, INST_MEM_SIZE);
-    port0.attach_mem(&dmem, 0, DMEM_DPETH);
     // port to cpu inst port
+    port0.attach_mem(&imem, PC_RESET_VALUE, INST_MEM_SIZE);
+    // port to cpu data port
     port1.attach_mem(&imem, PC_RESET_VALUE, INST_MEM_SIZE);
+    port1.attach_mem(&dmem, 0, DMEM_DPETH);
   }
   void load_mif(std::string file_name) {
     std::string line;
