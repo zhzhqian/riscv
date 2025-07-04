@@ -26,6 +26,8 @@ class TinyRiscv {
   MemToDecode mem_to_decode;
   EXEToMem exe_to_mem;
   MemToWB mem_to_wb;
+  // for debug
+  unsigned int cycles;
 
 public:
   MemoryPortMaster<RegVal, RegVal> imem_port;

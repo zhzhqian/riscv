@@ -93,13 +93,13 @@ static inline int arith_funct_to_aluop(uint32_t funct, uint32_t bit_30) {
 union InstType {
   uint32_t inst_raw;
   InstType(uint32_t inst) { inst_raw = inst; }
-  static uint32_t get_sign_mask(uint32_t sign, uint32_t bit_low =0,
-                                uint32_t bit_hi=31) {
-    u32 sign_mask = 0;
-    if (sign) {
-      sign_mask |= (~0U) & ((~0U) >> bit_hi) & ((~0U) << bit_low);
+  static uint32_t sign_extend(uint32_t val, uint32_t sign_pos) {
+    //TODO: test
+    uint32_t neg = val & (1 << sign_pos);
+    if(neg){
+      val |= ~((1U << sign_pos) - 1);
     }
-    return sign_mask;
+    return val;
   }
   struct RType {
     uint32_t opcode : 7;

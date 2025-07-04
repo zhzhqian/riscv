@@ -96,7 +96,7 @@ public:
           data = substitute_bit(read_data, data, (offset + size) * 8 - 1,
                                 offset * 8);
         }
-        att_mem.mem->write(addr, data);
+        att_mem.mem->write(addr - att_mem.mem_base, data);
       }
       break;
     }

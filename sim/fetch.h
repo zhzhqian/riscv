@@ -54,7 +54,7 @@ public:
     }
     pc_next = pc + 4;
     RegVal inst = inst_mem_port.issue_read(pc, sizeof(RegVal));
-    std::cout<< "executing: "<<std::hex<<std::setw(8) << inst<< std::endl;
+    std::cout<< "executing: 0x"<<std::hex<<std::setw(8) << inst<< std::endl;
 
     toDecode.inst = inst;
     toDecode.pc = pc;

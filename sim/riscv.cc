@@ -20,6 +20,7 @@ void TinyRiscv::reset() {
 
 
 void TinyRiscv::tick() {
+  cycles++;
   fetch.tick();
   dec.tick();
   exe.tick();
