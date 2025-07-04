@@ -117,14 +117,14 @@ union InstType {
     uint32_t imm0 : 5;
     uint32_t imm1 : 7;
     template <typename T> T get_imm() {
-      return (T)(this->imm0 | (this->imm1 << 5) |
-                 get_sign_mask(this->imm1 >> 6));
+      uint32_t imm12 = this->imm0 | (this->imm1 << 5);
+      return (T)(sign_extend(imm12, 11));
     }
-    template <typename T> T get_shm() {
-      return (T)(this->imm0 | get_sign_mask(this->imm1 >> 6));
-    }
+    // template <typename T> T get_shm() {
+    //   return (T)(this->imm0 | get_sign_mask(this->imm1 >> 6));
+    // }
     template <typename T> T get_immu() {
-      return (T)(this->imm0 | (this->imm1 << 5) | get_sign_mask(0));
+      return (T)(this->imm0 | (this->imm1 << 5));
     }
   } i_type;
   struct SType {
@@ -135,8 +135,8 @@ union InstType {
     uint32_t rs2 : 5;
     uint32_t imm_hi : 7;
     template <typename T> T get_imm() {
-      return (T)(this->imm_lo | (this->imm_hi << 5) |
-                 get_sign_mask(this->imm_hi >> 6));
+      uint32_t imm12 = this->imm_lo | (this->imm_hi << 5);
+      return (T)(sign_extend(imm12, 11));
     }
   } s_type;
   struct BType {
@@ -149,8 +149,9 @@ union InstType {
     uint32_t imm_hi : 6;
     uint32_t imm_12 : 1;
     template <typename T> T get_imm() {
-      return (T)((this->imm_11 << 12) | (this->imm_11 << 11) | this->imm_lo |
-                 (this->imm_hi << 4) | get_sign_mask(this->imm_12));
+      uint32_t imm12 = (this->imm_11 << 10) | (this->imm_12 << 11) | this->imm_lo |
+                 (this->imm_hi << 4);
+      return (T)( sign_extend(imm_12, 11));
     }
   } b_type;
   struct UType {
@@ -167,9 +168,9 @@ union InstType {
     uint32_t imm_10_1 : 10;
     uint32_t imm_20 : 1;
     template <typename T> T get_imm() {
-      return (T)((this->imm_20 << 20) | (this->imm_19_12 << 12) |
-                 (this->imm_11 << 11) | (this->imm_10_1 << 1) |
-                 get_sign_mask(this->imm_20));
+      uint32_t imm20 =(this->imm_20 << 20) | (this->imm_19_12 << 12) |
+                 (this->imm_11 << 11) | (this->imm_10_1 << 1);
+     return (T)(sign_extend(imm20, 19));
     }
   } j_type;
 };
@@ -270,7 +271,7 @@ public:
       to_exe.reg_we = true;
       if (inst_t.i_type.funct3 == SLLI_FUNCT ||
           inst_t.i_type.funct3 == SRLI_FUNCT) {
-        to_exe.imm = inst_t.i_type.get_shm<RegVal>();
+        to_exe.imm = inst_t.i_type.get_imm<RegVal>();
       }
       to_exe.alu_op = arith_imm_funct_to_aluop(inst_t.i_type.funct3,
                                                  inst_t.inst_raw & BIT(30));
