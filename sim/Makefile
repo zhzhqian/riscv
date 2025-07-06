@@ -9,7 +9,7 @@ OBJS := $(patsubst %.cpp,%.o,$(SRCS))
 OBJS := $(patsubst %.cc,%.o,$(OBJS))
 
 # 默认目标
-all: $(TARGET)
+all: clean $(TARGET)
 
 $(TARGET): $(OBJS)
 	$(CXX) $(CXXFLAGS) -g -o $@ $^

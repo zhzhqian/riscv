@@ -44,7 +44,7 @@ int main(int argc, char *argv[]) {
               << std::endl;
   // start simulation
   unsigned long cycles = 0;
-  while (cycles < 10) {
+  while (cycles < 20) {
     std::cout << "simulating cycle:" << cycles << std::endl;
 
     cpu.tick();
