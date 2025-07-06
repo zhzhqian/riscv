@@ -300,8 +300,6 @@ public:
       }
       break;
     }
-    to_exe.rs1 = regfile.read_port(rs1);
-    to_exe.rs2 = regfile.read_port(rs2);
     to_exe.pc = from_fetch.pc;
 
     // assume every branch taken
@@ -310,7 +308,11 @@ public:
 
     if (from_wb.reg_we) {
       regfile.write_port(from_wb.dst_reg, from_wb.wb_data);
+      LOG_INFO("write reg:%d to val:%x\n", from_wb.dst_reg, from_wb.wb_data);
     }
+
+    to_exe.rs1 = regfile.read_port(rs1);
+    to_exe.rs2 = regfile.read_port(rs2);
 
     check_data_hazard(rs1, rs2);
     if(from_fetch.flush){
@@ -323,23 +325,23 @@ public:
   void check_data_hazard(int rs1 , int rs2) {
     if (from_wb.reg_we) {
       if (from_exe.dst_reg == rs1 && rs1)
-        to_exe.rs1 = from_wb.dst_reg;
+        to_exe.rs1 = from_wb.wb_data;
       if (from_exe.dst_reg == rs2 && rs2)
-        to_exe.rs2 = from_wb.dst_reg;
+        to_exe.rs2 = from_wb.wb_data;
     }
 
     if (from_mem.reg_we) {
       if (from_exe.dst_reg == rs1 && rs1)
-        to_exe.rs1 = from_mem.dst_reg;
+        to_exe.rs1 = from_mem.dst_reg_data;
       if (from_exe.dst_reg == rs2 && rs2)
-        to_exe.rs2 = from_mem.dst_reg;
+        to_exe.rs2 = from_mem.dst_reg_data;
     }
 
     if (from_exe.reg_we) {
       if (from_exe.dst_reg == rs1 && rs1)
-        to_exe.rs1 = from_exe.dst_reg;
+        to_exe.rs1 = from_exe.dst_reg_data;
       if (from_exe.dst_reg == rs2 && rs2)
-        to_exe.rs2 = from_exe.dst_reg;
+        to_exe.rs2 = from_exe.dst_reg_data;
     }
   }
 };

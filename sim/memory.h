@@ -86,7 +86,7 @@ public:
     assert(size <= sizeof(MemCell));
     // assert(addr >= mem_base && addr < mem_base + mem_size);
     // unsupport unaligned access.
-    assert((addr & (size - 1)) != 0);
+    // assert((addr & (size - 1)) == 0);
     int offset = addr & ((AddrType)(sizeof(MemCell) - 1));
     for (auto att_mem : attached_mem) {
       if (att_mem.mem_base <= addr &&

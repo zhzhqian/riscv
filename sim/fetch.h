@@ -39,6 +39,7 @@ public:
     if (fromEXE.bp_fail) {
       pc = (fromEXE.branch_taken) ? fromEXE.jump_pc
                                           : fromEXE.exe_pc + 4;
+      LOG_INFO("brnach fail, try to return:%x\n", pc);
       /* flush decode and exe, since they are handling
        * wrong instruction.
        */
@@ -48,13 +49,15 @@ public:
       pc = fromEXE.jump_pc;
       // toExe.flush =true;
       // toDecode.flush =true;
+      LOG_INFO("jump to:%x\n", pc);
     } else if (fromDecode.bp_taken) {
       pc = fromDecode.bp_pc;
+      LOG_INFO("brnach to:%x\n", pc);
       // toDecode.flush =true;
     }
     pc_next = pc + 4;
     RegVal inst = inst_mem_port.issue_read(pc, sizeof(RegVal));
-    std::cout<< "executing: 0x"<<std::hex<<std::setw(8) << inst<< std::endl;
+    LOG_INFO("executing: 0x%08x at pc:0x%x\n",inst, pc);
 
     toDecode.inst = inst;
     toDecode.pc = pc;

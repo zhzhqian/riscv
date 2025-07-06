@@ -5,6 +5,7 @@
 #include <iostream>
 #include <assert.h>
 #include <cstdlib>
+#include "log.h"
 
 using RegVal=int32_t;
 using RegVal_u=uint32_t;
